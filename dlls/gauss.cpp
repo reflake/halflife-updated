@@ -44,6 +44,13 @@ float CGauss::GetFullChargeTime()
 extern bool g_irunninggausspred;
 #endif
 
+#ifndef CLIENT_DLL
+extern void GizmoDrawLine(Vector vecSrc, TraceResult tr, int color);
+const int yellowColor = 0xFFCC00;
+const int redColor = 0xFF0000;
+const int blueColor = 0x1111FF;
+#endif
+
 void CGauss::Spawn()
 {
 	Precache();
@@ -389,6 +396,8 @@ void CGauss::Fire(Vector vecOrigSrc, Vector vecDir, float flDamage)
 		if (pEntity == NULL)
 			break;
 
+		GizmoDrawLine( vecSrc, tr, fHasPunched ? redColor : yellowColor );
+
 		if (fFirstBeam)
 		{
 			m_pPlayer->pev->effects |= EF_MUZZLEFLASH;
@@ -453,6 +462,8 @@ void CGauss::Fire(Vector vecOrigSrc, Vector vecDir, float flDamage)
 						UTIL_TraceLine(beam_tr.vecEndPos, tr.vecEndPos, dont_ignore_monsters, pentIgnore, &beam_tr);
 
 						float n = (beam_tr.vecEndPos - tr.vecEndPos).Length();
+
+						GizmoDrawLine(beam_tr.vecEndPos, tr, blueColor);
 
 						if (n < flDamage)
 						{
@@ -613,3 +624,22 @@ class CGaussAmmo : public CBasePlayerAmmo
 	}
 };
 LINK_ENTITY_TO_CLASS(ammo_gaussclip, CGaussAmmo);
+
+#ifndef CLIENT_DLL
+void GizmoDrawLine(Vector vecSrc, TraceResult tr, int color)
+{
+	MESSAGE_BEGIN(MSG_PAS, SVC_TEMPENTITY, vecSrc);
+	WRITE_BYTE(TE_LINE);
+	WRITE_COORD(vecSrc.x);
+	WRITE_COORD(vecSrc.y);
+	WRITE_COORD(vecSrc.z);
+	WRITE_COORD(tr.vecEndPos.x);
+	WRITE_COORD(tr.vecEndPos.y);
+	WRITE_COORD(tr.vecEndPos.z);
+	WRITE_SHORT(20);
+	WRITE_BYTE((color & 0xFF0000) >> 16);
+	WRITE_BYTE((color & 0x00FF00) >> 8);
+	WRITE_BYTE(color & 0x0000FF);
+	MESSAGE_END();
+}
+#endif
